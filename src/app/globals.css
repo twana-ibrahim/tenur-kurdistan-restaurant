@@ -1,0 +1,276 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------- tokens */
+
+@theme {
+  /* Ember palette on near-black. One accent, used sparingly. */
+  --color-ink: #0b0908;
+  --color-ink-2: #131010;
+  --color-ash: #1d1815;
+  --color-ash-2: #2a221d;
+  --color-bone: #f3ebde;
+  --color-bone-dim: #b6a897;
+  --color-bone-faint: #7c7166;
+  --color-ember: #e0762c;
+  --color-ember-bright: #ffab5c;
+  --color-clay: #8a4718;
+
+  --font-display: var(--font-instrument), Georgia, "Times New Roman", serif;
+  --font-body: var(--font-plex), ui-sans-serif, system-ui, sans-serif;
+
+  /* Motion scale. Three durations and two curves, reused everywhere. */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-micro: 150ms;
+  --dur-enter: 260ms;
+  --dur-large: 420ms;
+}
+
+/* Sorani swaps both faces: Reem Kufi for display, Plex Arabic for text. */
+:root[dir="rtl"] {
+  --font-display: var(--font-reem), "Noto Kufi Arabic", sans-serif;
+  --font-body: var(--font-plex-arabic), "Noto Sans Arabic", sans-serif;
+}
+
+/* ------------------------------------------------------------------ base */
+
+@layer base {
+  html {
+    background-color: var(--color-ink);
+    color-scheme: dark;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* Lenis drives scrolling; native smooth scroll would fight it. */
+  html.lenis,
+  html.lenis body {
+    height: auto;
+  }
+  .lenis.lenis-smooth {
+    scroll-behavior: auto !important;
+  }
+  .lenis.lenis-stopped {
+    overflow: hidden;
+  }
+
+  body {
+    background-color: var(--color-ink);
+    color: var(--color-bone);
+    font-family: var(--font-body);
+    font-synthesis-weight: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  ::selection {
+    background: var(--color-ember);
+    color: var(--color-ink);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-ember-bright);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  /* Sorani runs larger than Latin at the same px size and needs more leading. */
+  :root[dir="rtl"] body {
+    font-size: 1.02em;
+    line-height: 1.85;
+  }
+}
+
+/* ------------------------------------------------------------ components */
+
+@layer components {
+  .shell {
+    width: 100%;
+    max-width: 88rem;
+    margin-inline: auto;
+    padding-inline: clamp(1.25rem, 5vw, 4.5rem);
+  }
+
+  /* Fluid display type. clamp keeps it from breaking on a 360px Android.
+     These carry the family too, so the class is enough on any element rather
+     than only on a heading tag. */
+  .display-xl,
+  .display-lg,
+  .display-md {
+    font-family: var(--font-display);
+    font-weight: 400;
+  }
+
+  .display-xl {
+    font-size: clamp(3.5rem, 15vw, 13rem);
+    line-height: 0.86;
+    letter-spacing: -0.03em;
+  }
+  .display-lg {
+    font-size: clamp(2.25rem, 6.5vw, 5.5rem);
+    line-height: 1.02;
+    letter-spacing: -0.02em;
+  }
+  .display-md {
+    font-size: clamp(1.75rem, 3.6vw, 3rem);
+    line-height: 1.1;
+    letter-spacing: -0.015em;
+  }
+
+  :root[dir="rtl"] .display-xl,
+  :root[dir="rtl"] .display-lg,
+  :root[dir="rtl"] .display-md {
+    letter-spacing: 0;
+    line-height: 1.3;
+  }
+  :root[dir="rtl"] .display-xl {
+    font-size: clamp(3rem, 13vw, 11rem);
+    line-height: 1.15;
+  }
+
+  .eyebrow {
+    font-family: var(--font-body);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--color-bone-faint);
+  }
+  :root[dir="rtl"] .eyebrow {
+    letter-spacing: 0;
+    text-transform: none;
+    font-size: 0.8125rem;
+  }
+
+  .rule {
+    height: 1px;
+    background: linear-gradient(
+      to inline-end,
+      color-mix(in oklab, var(--color-bone) 22%, transparent),
+      transparent
+    );
+  }
+}
+
+/* ------------------------------------------------------------- utilities */
+
+@layer utilities {
+  /* Film grain over the whole page. One fixed layer, painted once. */
+  .grain::after {
+    content: "";
+    position: fixed;
+    inset: -50%;
+    z-index: 60;
+    pointer-events: none;
+    opacity: 0.05;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
+    animation: grain-shift 6s steps(4) infinite;
+  }
+
+  .edge-fade-b {
+    mask-image: linear-gradient(to bottom, black 62%, transparent 100%);
+  }
+
+  /* Directional motion has to mirror, so the sign comes from the document. */
+  .marquee-track {
+    animation: marquee-ltr 42s linear infinite;
+  }
+  :root[dir="rtl"] .marquee-track {
+    animation-name: marquee-rtl;
+  }
+
+  .hide-scrollbar {
+    scrollbar-width: none;
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@keyframes grain-shift {
+  0% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(-2%, 1%);
+  }
+  50% {
+    transform: translate(1%, -2%);
+  }
+  75% {
+    transform: translate(-1%, -1%);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
+}
+
+@keyframes marquee-ltr {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+@keyframes marquee-rtl {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(50%, 0, 0);
+  }
+}
+
+@keyframes ember-drift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.7;
+  }
+  100% {
+    transform: translate3d(var(--dx, 20px), -100vh, 0) scale(0.4);
+    opacity: 0;
+  }
+}
+
+/* --------------------------------------------------------- reduced motion */
+
+/*
+ * Reduced motion replaces movement rather than removing feedback: reveals
+ * still happen, they just cross-fade in place instead of travelling.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .grain::after {
+    animation: none;
+  }
+
+  .marquee-track {
+    animation: none;
+    transform: none;
+  }
+}
