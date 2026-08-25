@@ -30,7 +30,6 @@ export async function generateMetadata({
       title: meta.menu.title[locale],
       description: meta.menu.description[locale],
       url: localeUrl(locale, "menu"),
-      images: [{ url: "/img/dish-kebab.jpg", width: 1000, height: 1250 }],
     },
   };
 }
@@ -71,7 +70,7 @@ export default async function MenuPage({
           </p>
         </Reveal>
 
-        <MenuList sections={menu} locale={locale} />
+        <MenuList sections={menu} locale={locale} headingLevel={2} />
 
         <Reveal>
           <div className="mt-20 rounded-sm border border-ember/25 bg-ember/[0.06] p-8 sm:p-10">

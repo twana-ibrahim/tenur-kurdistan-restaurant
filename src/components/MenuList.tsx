@@ -29,13 +29,23 @@ export default function MenuList({
   sections,
   locale,
   limit,
+  headingLevel = 3,
 }: {
   sections: MenuSection[];
   locale: Locale;
   limit?: number;
+  /**
+   * Section titles render at this level and dish names one below it. The home
+   * page nests this under its own h2, the menu page sits directly under the h1,
+   * and hardcoding either one breaks heading order on the other.
+   */
+  headingLevel?: 2 | 3;
 }) {
   const reduced = useReducedMotion();
   const [active, setActive] = useState<string | null>(null);
+
+  const SectionHeading = headingLevel === 2 ? "h2" : "h3";
+  const ItemHeading = headingLevel === 2 ? "h3" : "h4";
 
   const x = useMotionValue(0);
   const y = useMotionValue(0);
@@ -57,7 +67,9 @@ export default function MenuList({
           <section key={section.id} className="mb-20 last:mb-0">
             <Reveal>
               <header className="mb-8 flex flex-wrap items-baseline justify-between gap-x-8 gap-y-2 border-b border-bone/10 pb-4">
-                <h3 className="display-md text-bone">{section.title[locale]}</h3>
+                <SectionHeading className="display-md text-bone">
+                  {section.title[locale]}
+                </SectionHeading>
                 {section.note && (
                   <p className="max-w-sm text-sm text-bone-faint">{section.note[locale]}</p>
                 )}
@@ -76,9 +88,9 @@ export default function MenuList({
                       onPointerLeave={() => setActive(null)}
                     >
                       <div className="flex items-baseline justify-between gap-6">
-                        <h4 className="font-display text-2xl text-bone transition-transform duration-300 ease-out group-hover:translate-x-1 sm:text-3xl rtl:group-hover:-translate-x-1">
+                        <ItemHeading className="font-display text-2xl text-bone transition-transform duration-300 ease-out group-hover:translate-x-1 sm:text-3xl rtl:group-hover:-translate-x-1">
                           {item.name[locale]}
-                        </h4>
+                        </ItemHeading>
                         <span className="shrink-0 font-display text-xl text-ember tabular-nums">
                           {formatPrice(item.price, locale)}
                           <span className="ms-1.5 text-xs text-bone-faint">
