@@ -7,6 +7,10 @@ const nextConfig: NextConfig = {
   images: {
     formats: ["image/avif", "image/webp"],
   },
+  experimental: {
+    // Motion re-exports a large surface; only pull in what is imported.
+    optimizePackageImports: ["motion"],
+  },
   async headers() {
     return [
       {
