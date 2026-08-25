@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 
 import { hours, restaurant, setMenu, ui } from "@/lib/content";
+import type { FieldErrors } from "@/lib/reservation";
 import { formatPrice, type Locale } from "@/lib/i18n";
 import { Reveal, SplitWords } from "./Reveal";
 
@@ -18,11 +19,7 @@ export default function Visit({ locale }: { locale: Locale }) {
 
       <SplitWords
         as="h2"
-        text={
-          locale === "ku"
-            ? "شەقامی ١٠٠ مەتری، هەولێر."
-            : "The 100 Metre Road, Erbil."
-        }
+        text={locale === "ku" ? "شەقامی ١٠٠ مەتری، هەولێر." : "The 100 Metre Road, Erbil."}
         className="display-lg mb-16 max-w-3xl text-bone"
       />
 
@@ -32,7 +29,10 @@ export default function Visit({ locale }: { locale: Locale }) {
             <h3 className="eyebrow mb-5">{ui.openingHours[locale]}</h3>
             <dl className="mb-12 space-y-4">
               {hours.map((row, i) => (
-                <div key={i} className="flex items-baseline justify-between gap-6 border-b border-bone/10 pb-4">
+                <div
+                  key={i}
+                  className="flex items-baseline justify-between gap-6 border-b border-bone/10 pb-4"
+                >
                   <dt>
                     <span className="block text-bone">{row.label[locale]}</span>
                     <span className="text-xs text-bone-faint">{row.service[locale]}</span>
@@ -101,30 +101,107 @@ export default function Visit({ locale }: { locale: Locale }) {
   );
 }
 
+/* --------------------------------------------------------------- messages */
+
+const ERRORS: Record<Locale, Record<string, string>> = {
+  en: {
+    name_too_short: "We need a name to hold the table under.",
+    name_too_long: "That name is too long.",
+    phone_required: "We confirm by phone, so we need a number.",
+    phone_invalid: "That does not look like a phone number.",
+    guests_required: "Tell us how many are coming.",
+    guests_invalid: "Tell us how many are coming.",
+    date_invalid: "Pick a date.",
+    date_past: "That date has already passed.",
+    date_too_far: "We take bookings up to two weeks ahead.",
+    time_invalid: "Pick a time.",
+    notes_too_long: "Please keep the note under 500 characters.",
+    rate_limited: "That is a lot of attempts. Give it a few minutes, or call us.",
+    delivery_failed: "That did not send. Please call us instead.",
+    unknown: "Something went wrong. Please call us instead.",
+  },
+  ku: {
+    name_too_short: "ناوێکمان پێویستە بۆ ئەوەی مێزەکە بەناویەوە بگرین.",
+    name_too_long: "ناوەکە زۆر درێژە.",
+    phone_required: "بە تەلەفۆن دڵنیای دەکەینەوە، بۆیە ژمارەیەکمان پێویستە.",
+    phone_invalid: "ئەمە لە ژمارەی تەلەفۆن ناچێت.",
+    guests_required: "پێمان بڵێ چەند کەسن.",
+    guests_invalid: "پێمان بڵێ چەند کەسن.",
+    date_invalid: "بەروارێک هەڵبژێرە.",
+    date_past: "ئەو بەروارە تێپەڕیوە.",
+    date_too_far: "تا دوو هەفتە پێش وەخت مێز دەگرین.",
+    time_invalid: "کاتێک هەڵبژێرە.",
+    notes_too_long: "تکایە تێبینییەکە لە ٥٠٠ پیت کەمتر بێت.",
+    rate_limited: "هەوڵی زۆر درا. چەند خولەکێک چاوەڕێ بکە، یان پەیوەندیمان پێوە بکە.",
+    delivery_failed: "نەنێردرا. تکایە پەیوەندیمان پێوە بکە.",
+    unknown: "کێشەیەک ڕوویدا. تکایە پەیوەندیمان پێوە بکە.",
+  },
+};
+
 /**
  * The booking form.
  *
- * There is no backend in this build, so submit resolves locally. The states
- * that a real one needs are all here: disabled while in flight, a guarded
- * double submit, native validation messages, and a success state that is
- * announced rather than only shown.
+ * Native validation gives the fast feedback; the API is the real gate and its
+ * field errors are rendered back against the inputs. Submit is guarded against
+ * a double tap, and both the success and failure states are announced rather
+ * than only shown.
  */
 function ReservationForm({ locale }: { locale: Locale }) {
   const [status, setStatus] = useState<Status>("idle");
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [formError, setFormError] = useState<string | null>(null);
   const ku = locale === "ku";
+  const message = (code: string) => ERRORS[locale][code] ?? ERRORS[locale].unknown;
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (status !== "idle") return;
+    if (status === "sending") return;
+
+    const form = event.currentTarget;
+    const payload = Object.fromEntries(new FormData(form).entries());
 
     setStatus("sending");
-    await new Promise((resolve) => setTimeout(resolve, 900));
-    setStatus("sent");
+    setFieldErrors({});
+    setFormError(null);
+
+    try {
+      const response = await fetch("/api/reservations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        setStatus("sent");
+        return;
+      }
+
+      const body = await response.json().catch(() => null);
+      if (response.status === 422 && body?.errors) {
+        setFieldErrors(body.errors as FieldErrors);
+        setFormError(null);
+      } else {
+        setFormError(message(body?.error ?? "unknown"));
+      }
+      setStatus("idle");
+    } catch {
+      setFormError(message("delivery_failed"));
+      setStatus("idle");
+    }
   }
 
   const field =
-    "w-full rounded-sm border border-bone/15 bg-transparent px-4 py-3 text-bone transition-colors placeholder:text-bone-faint focus:border-ember focus:outline-none";
+    "w-full rounded-sm border bg-transparent px-4 py-3 text-bone transition-colors placeholder:text-bone-faint focus:outline-none";
+  const ok = "border-bone/15 focus:border-ember";
+  const bad = "border-red-400/60 focus:border-red-400";
   const label = "mb-2 block text-xs tracking-wide text-bone-faint";
+
+  const cls = (key: keyof FieldErrors) => `${field} ${fieldErrors[key] ? bad : ok}`;
+
+  const Error = ({ name }: { name: keyof FieldErrors }) =>
+    fieldErrors[name] ? (
+      <p className="mt-1.5 text-xs text-red-400">{message(fieldErrors[name]!)}</p>
+    ) : null;
 
   return (
     <div id="reserve" className="scroll-mt-28 rounded-sm border border-bone/10 bg-ink-2 p-7 sm:p-10">
@@ -163,11 +240,28 @@ function ReservationForm({ locale }: { locale: Locale }) {
             exit={{ opacity: 0 }}
             className="grid gap-5 sm:grid-cols-2"
           >
+            {formError && (
+              <p
+                role="alert"
+                className="rounded-sm border border-red-400/40 bg-red-400/10 px-4 py-3 text-sm text-red-300 sm:col-span-2"
+              >
+                {formError}
+              </p>
+            )}
+
             <div className="sm:col-span-2">
               <label className={label} htmlFor="name">
                 {ku ? "ناو" : "Name"}
               </label>
-              <input id="name" name="name" required className={field} autoComplete="name" />
+              <input
+                id="name"
+                name="name"
+                required
+                autoComplete="name"
+                className={cls("name")}
+                aria-invalid={Boolean(fieldErrors.name)}
+              />
+              <Error name="name" />
             </div>
 
             <div>
@@ -179,17 +273,19 @@ function ReservationForm({ locale }: { locale: Locale }) {
                 name="phone"
                 type="tel"
                 required
-                className={field}
                 autoComplete="tel"
                 placeholder="+964 750 000 0000"
+                className={cls("phone")}
+                aria-invalid={Boolean(fieldErrors.phone)}
               />
+              <Error name="phone" />
             </div>
 
             <div>
               <label className={label} htmlFor="guests">
                 {ku ? "ژمارەی کەسان" : "Guests"}
               </label>
-              <select id="guests" name="guests" className={field} defaultValue="2">
+              <select id="guests" name="guests" defaultValue="2" className={cls("guests")}>
                 {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
                   <option key={n} value={n} className="bg-ink">
                     {n}
@@ -199,13 +295,22 @@ function ReservationForm({ locale }: { locale: Locale }) {
                   9+
                 </option>
               </select>
+              <Error name="guests" />
             </div>
 
             <div>
               <label className={label} htmlFor="date">
                 {ku ? "بەروار" : "Date"}
               </label>
-              <input id="date" name="date" type="date" required className={field} />
+              <input
+                id="date"
+                name="date"
+                type="date"
+                required
+                className={cls("date")}
+                aria-invalid={Boolean(fieldErrors.date)}
+              />
+              <Error name="date" />
             </div>
 
             <div>
@@ -217,16 +322,21 @@ function ReservationForm({ locale }: { locale: Locale }) {
                 name="time"
                 type="time"
                 required
-                className={field}
                 defaultValue="20:00"
+                className={cls("time")}
+                aria-invalid={Boolean(fieldErrors.time)}
               />
+              <Error name="time" />
             </div>
 
             <div className="sm:col-span-2">
               <label className={label} htmlFor="notes">
-                {ku ? "تێبینی (هەستیاری، ڕووەکخۆر، ڕۆژی لەدایکبوون)" : "Notes (allergies, vegetarian, a birthday)"}
+                {ku
+                  ? "تێبینی (هەستیاری، ڕووەکخۆر، ڕۆژی لەدایکبوون)"
+                  : "Notes (allergies, vegetarian, a birthday)"}
               </label>
-              <textarea id="notes" name="notes" rows={3} className={field} />
+              <textarea id="notes" name="notes" rows={3} maxLength={500} className={cls("notes")} />
+              <Error name="notes" />
             </div>
 
             <div className="sm:col-span-2">
