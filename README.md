@@ -18,13 +18,9 @@ npm run typecheck
 Fonts are pulled through `next/font` at build time, so the first build needs
 network access. After that they are self-hosted.
 
-Set the canonical origin before deploying, or canonical URLs and the sitemap
-will point at the placeholder domain:
-
-```bash
-# .env.local
-NEXT_PUBLIC_SITE_URL=https://your-domain.com
-```
+Copy `.env.example` to `.env.local` and fill it in. Without `NEXT_PUBLIC_SITE_URL`
+every canonical URL, hreflang tag and sitemap entry points at the placeholder
+domain.
 
 ## Stack
 
@@ -37,7 +33,9 @@ NEXT_PUBLIC_SITE_URL=https://your-domain.com
 | Scroll | Lenis 1.3 |
 | Images | `next/image` |
 
-Routes: `/en`, `/ku`, `/en/menu`, `/ku/menu`, all statically prerendered.
+Routes: `/en`, `/ku`, `/en/menu`, `/ku/menu`, all statically prerendered, plus
+`POST /api/reservations`. Icons, the web manifest and the per-locale social card
+are generated from `src/app`.
 
 ## Layout
 
@@ -53,6 +51,7 @@ src/
     content.ts         all copy and data, bilingual
     i18n.ts            locales, direction, formatting
     seo.ts             JSON-LD builders and URL helpers
+    reservation.ts     booking validation, shared by the route and the form
   proxy.ts             sends / to a locale from Accept-Language
 ```
 
@@ -94,9 +93,26 @@ Rubik) do not, and will render Kurdish text broken.
   FAQ so answers are in the DOM whether or not a panel is open.
 - Text reveals split on words, not characters, so headings stay a single
   readable string for crawlers and screen readers.
-- Fonts and the LCP hero image are preloaded.
+- The LCP hero image is preloaded; fonts are left to CSS discovery so a
+  locale only downloads the faces it actually paints.
 - The home page shows two items per menu section; the full card lives at `/menu`,
   so the two pages do not compete for the same terms.
+
+## Reservations
+
+`POST /api/reservations` validates the booking, throttles by IP (five per ten
+minutes, per instance) and then forwards it.
+
+Where it forwards is a deployment decision rather than something baked in: set
+`RESERVATION_WEBHOOK_URL` to any endpoint that accepts a JSON POST, such as a
+form service, an inbox relay or a booking system. With nothing configured the
+request is validated and logged, so the form works in development without
+pretending a booking was stored.
+
+Validation lives in `src/lib/reservation.ts` and returns error codes rather than
+sentences, so the form renders them in whichever language the visitor is
+reading. Bookings are accepted up to `MAX_DAYS_AHEAD` days out, which the FAQ
+answer is written to match.
 
 ## Motion
 
@@ -111,10 +127,25 @@ switched off, reveals cross-fade in place instead of travelling, the pinned
 gallery becomes an ordinary swipeable row, and the ember particles and custom
 cursor do not mount. Lenis is also disabled for coarse pointers.
 
+## Measured
+
+Lighthouse, all four routes, mobile profile:
+
+| | perf | a11y | best practices | SEO |
+| --- | --- | --- | --- | --- |
+| `/en` | 91 | 100 | 100 | 100 |
+| `/ku` | 87 | 100 | 100 | 100 |
+| `/en/menu` | 94 | 100 | 100 | 100 |
+| `/ku/menu` | 88 | 100 | 100 | 100 |
+
+CLS is 0. The Kurdish routes sit a few points lower because the Arabic faces are
+heavier than the Latin ones and the largest text on the page is set in them.
+
+Layout is verified at 360, 390, 768 and 1024px in both text directions with no
+horizontal overflow, and in WebKit, where `position: sticky` and `svh` both
+behave.
+
 ## Outstanding
 
-- The reservation form has no backend. Submit resolves locally; the states a
-  real one needs (in-flight, disabled, guarded double submit, announced success)
-  are already wired.
-- No test suite. The typecheck and the build are the current safety net.
 - Contact details, address and social links are placeholders.
+- No automated tests; the typecheck and the build are the safety net.
