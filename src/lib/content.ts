@@ -7,7 +7,7 @@
 import type { T } from "./i18n";
 
 export const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ?? "https://tenur.example";
+  process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ?? "https://tenur.krd";
 
 export const restaurant = {
   name: "Tenûr",
@@ -20,7 +20,7 @@ export const restaurant = {
   currency: "IQD",
   phone: "+964 750 000 0000",
   phoneHref: "+9647500000000",
-  email: "mez@tenur.example",
+  email: "mez@tenur.krd",
   cuisine: ["Kurdish", "Iraqi", "Middle Eastern"],
   address: {
     street: {
@@ -469,38 +469,44 @@ export const press = [
 
 export const faq = [
   {
-    question: { en: "Do you take walk-ins?", ku: "بەبێ مێزگرتن وەردەگرن؟" } satisfies T,
+    question: {
+      en: "Do you take walk-ins?",
+      ku: "بەبێ مێزگرتن دەتوانین بێین بۆ خواردن؟",
+    } satisfies T,
     answer: {
       en: "Yes, for the ten seats along the oven wall. They are kept back from booking and given out from the moment we open.",
-      ku: "بەڵێ، بۆ ئەو دە کورسییەی لەتەنیشت دیواری تەنوورەکەن. لە مێزگرتن دوور دەخرێنەوە و لە کاتی کردنەوەمانەوە دەدرێن.",
+      ku: "بەڵێ. دە کورسی هەیە لەتەنیشت دیواری تەنوورەکە کە بۆ مێزگرتن تەرخان ناکرێن. لە کاتی کردنەوەمانەوە بە ڕیز دەدرێن بەوانەی دێن.",
     } satisfies T,
   },
   {
-    question: { en: "How far ahead can we book?", ku: "چەند پێشتر دەتوانین مێز بگرین؟" } satisfies T,
+    question: {
+      en: "How far ahead can we book?",
+      ku: "چەند پێش وەخت دەتوانین مێز بگرین؟",
+    } satisfies T,
     answer: {
-      en: "Six weeks. Thursday and Friday evenings usually go within the day.",
-      ku: "شەش هەفتە. ئێوارانی پێنجشەممە و هەینی زۆرجار لە هەمان ڕۆژدا تەواو دەبن.",
+      en: "Two weeks. Thursday and Friday evenings usually go within the day.",
+      ku: "دوو هەفتە پێش وەخت. ئێوارانی پێنجشەممە و هەینی زۆرجار هەر لە هەمان ڕۆژدا پڕ دەبن.",
     } satisfies T,
   },
   {
     question: { en: "Can you cook for vegetarians?", ku: "بۆ ڕووەکخۆران چێشت لێدەنێن؟" } satisfies T,
     answer: {
       en: "Most of the mezze, the dolma, the bread and the tepsî can all be done without meat. Tell us when you book. The kitchen is small, so we will say honestly if we cannot make an allergy safe rather than guess.",
-      ku: "زۆربەی مێزە، دۆڵمە، نان و تەپسی دەکرێن بەبێ گۆشت. لە کاتی مێزگرتندا پێمان بڵێ. چێشتخانەکە بچووکە، بۆیە بە ڕاستگۆیی دەڵێین ئەگەر نەتوانین هەستیارییەک سەلامەت بکەین، لەبری ئەوەی گریمانە بکەین.",
+      ku: "زۆربەی مێزە، دۆڵمە، نان و تەپسی بەبێ گۆشت دەکرێن. لە کاتی مێزگرتندا پێمان بڵێ. چێشتخانەکە بچووکە، بۆیە ئەگەر نەتوانین هەستیارییەک بە دڵنیاییەوە دووربخەینەوە، ڕاشکاوانە پێت دەڵێین.",
     } satisfies T,
   },
   {
     question: { en: "Is there parking?", ku: "شوێنی ئۆتۆمبێل هەیە؟" } satisfies T,
     answer: {
       en: "There is a yard behind the building with room for about a dozen cars, and street parking along the 100 Metre Road after seven.",
-      ku: "حەوشەیەک لە پشتی باڵەخانەکەدا هەیە بۆ نزیکەی دوازدە ئۆتۆمبێل، و لەسەر شەقامی ١٠٠ مەتری دوای کاتژمێر حەوت شوێن هەیە.",
+      ku: "لە پشتی باڵەخانەکە حەوشەیەک هەیە کە نزیکەی دوازدە ئۆتۆمبێلی تێدا دەبێتەوە. دوای کاتژمێر حەوتیش لەسەر شەقامی ١٠٠ مەتری شوێن دەدۆزرێتەوە.",
     } satisfies T,
   },
   {
     question: { en: "Is the room accessible?", ku: "ژوورەکە دەستڕاگەیشتووە؟" } satisfies T,
     answer: {
       en: "The dining room and the accessible toilet are at street level with no step at the entrance. Tell us when you book and we will keep a standard table rather than a stool.",
-      ku: "ژووری خواردن و تەوالێتی تایبەت لە ئاستی شەقامدان و هیچ پلیکانەیەک لە دەروازەکەدا نییە. لە کاتی مێزگرتندا پێمان بڵێ تاکو مێزێکی ئاسایی بۆت بهێڵینەوە نەک کورسییەکی بەرز.",
+      ku: "ژووری خواردن و تەوالێتی تایبەت هەردووکیان لە ئاستی شەقامدان و لە دەروازەکە پلیکانە نییە. لە کاتی مێزگرتندا پێمان بڵێ تاکو مێزێکی ئاسایی بۆت بهێڵینەوە لەبری کورسی بەرز.",
     } satisfies T,
   },
 ];
