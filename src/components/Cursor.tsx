@@ -50,14 +50,21 @@ export default function Cursor() {
       className="pointer-events-none fixed left-0 top-0 z-[70] hidden mix-blend-difference md:block"
       style={{ x: springX, y: springY }}
     >
+      {/*
+        Over an element the cursor becomes a ring rather than growing into a
+        filled disc. A filled disc under mix-blend-difference sits on top of the
+        button label and reads as a rendering fault. The resting dot is the same
+        element with a border thick enough to close the middle.
+      */}
       <motion.span
-        className="block rounded-full bg-bone"
+        className="block rounded-full border-bone"
+        style={{ boxSizing: "border-box", borderStyle: "solid" }}
         animate={{
-          width: active ? 44 : 10,
-          height: active ? 44 : 10,
-          x: active ? -22 : -5,
-          y: active ? -22 : -5,
-          opacity: active ? 0.5 : 0.9,
+          width: active ? 46 : 10,
+          height: active ? 46 : 10,
+          x: active ? -23 : -5,
+          y: active ? -23 : -5,
+          borderWidth: active ? 1.5 : 5,
         }}
         transition={{ type: "spring", stiffness: 500, damping: 34 }}
       />
