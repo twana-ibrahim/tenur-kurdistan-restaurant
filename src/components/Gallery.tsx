@@ -104,8 +104,8 @@ function Figure({
   locale: Locale;
 }) {
   return (
-    <figure className="group w-[78vw] shrink-0 snap-center sm:w-[46vw] lg:w-[30vw]">
-      <div className="relative aspect-[4/5] overflow-hidden rounded-sm">
+    <figure className="group shrink-0 snap-center">
+      <div className="relative h-[60svh] w-[78vw] overflow-hidden rounded-sm sm:aspect-[4/5] sm:h-auto sm:w-[46vw] lg:w-[30vw]">
         <Image
           src={item.src}
           alt={item.alt[locale]}

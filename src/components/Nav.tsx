@@ -84,7 +84,7 @@ export default function Nav({ locale }: { locale: Locale }) {
 
               <a
                 href="#reserve"
-                className="hidden rounded-full bg-ember px-5 py-2 text-sm font-medium text-ink transition-transform duration-150 hover:scale-[1.03] sm:block"
+                className="rounded-full bg-ember px-3.5 py-1.5 text-xs font-medium text-ink transition-transform duration-150 hover:scale-[1.03] sm:px-5 sm:py-2 sm:text-sm"
               >
                 {ui.reserveShort[locale]}
               </a>
