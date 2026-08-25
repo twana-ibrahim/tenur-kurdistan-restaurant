@@ -1,11 +1,3 @@
-/**
- * Reservation request shape and validation.
- *
- * Lives outside the route handler so the same rules can be unit tested without
- * standing up a server. Errors are returned as codes rather than sentences, so
- * the client renders them in whichever locale the visitor is reading.
- */
-
 export type ReservationInput = {
   name: string;
   phone: string;
@@ -17,7 +9,6 @@ export type ReservationInput = {
 
 export type FieldErrors = Partial<Record<keyof ReservationInput, string>>;
 
-/** How far ahead bookings are accepted, matching the answer in the FAQ. */
 export const MAX_DAYS_AHEAD = 14;
 
 const PHONE = /^[+()\d][\d\s()-]{6,19}$/;
@@ -28,12 +19,6 @@ function startOfDay(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
-/**
- * Validates and normalises one submission.
- *
- * `today` is injected so the date rules are testable and do not depend on the
- * clock of whatever machine runs the suite.
- */
 export function validateReservation(
   raw: unknown,
   today: Date = new Date()

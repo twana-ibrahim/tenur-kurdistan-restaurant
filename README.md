@@ -33,9 +33,8 @@ domain.
 | Scroll | Lenis 1.3 |
 | Images | `next/image` |
 
-Routes: `/en`, `/ku`, `/en/menu`, `/ku/menu`, all statically prerendered, plus
-`POST /api/reservations`. Icons, the web manifest and the per-locale social card
-are generated from `src/app`.
+Routes: `/en`, `/ku`, `/en/menu`, `/ku/menu`, all statically prerendered. Icons,
+the web manifest and the per-locale social card are generated from `src/app`.
 
 ## Layout
 
@@ -51,7 +50,7 @@ src/
     content.ts         all copy and data, bilingual
     i18n.ts            locales, direction, formatting
     seo.ts             JSON-LD builders and URL helpers
-    reservation.ts     booking validation, shared by the route and the form
+    reservation.ts     booking validation, used by the form
   proxy.ts             sends / to a locale from Accept-Language
 ```
 
@@ -100,14 +99,10 @@ Rubik) do not, and will render Kurdish text broken.
 
 ## Reservations
 
-`POST /api/reservations` validates the booking, throttles by IP (five per ten
-minutes, per instance) and then forwards it.
-
-Where it forwards is a deployment decision rather than something baked in: set
-`RESERVATION_WEBHOOK_URL` to any endpoint that accepts a JSON POST, such as a
-form service, an inbox relay or a booking system. With nothing configured the
-request is validated and logged, so the form works in development without
-pretending a booking was stored.
+Tables are held over the phone, so the booking form checks a request rather than
+sending one. There is no endpoint behind it and nothing is stored; a clean pass
+hands the details back as a summary to read out, next to the number. No part of
+the interface tells a visitor a table has been kept.
 
 Validation lives in `src/lib/reservation.ts` and returns error codes rather than
 sentences, so the form renders them in whichever language the visitor is

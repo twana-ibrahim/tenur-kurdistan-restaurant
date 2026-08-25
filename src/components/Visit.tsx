@@ -4,11 +4,11 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 
 import { hours, restaurant, setMenu, ui } from "@/lib/content";
-import type { FieldErrors } from "@/lib/reservation";
+import { validateReservation, type FieldErrors, type ReservationInput } from "@/lib/reservation";
 import { formatPrice, type Locale } from "@/lib/i18n";
 import { Reveal, SplitWords } from "./Reveal";
 
-type Status = "idle" | "sending" | "sent";
+type Status = "idle" | "ready";
 
 export default function Visit({ locale }: { locale: Locale }) {
   return (
@@ -101,8 +101,6 @@ export default function Visit({ locale }: { locale: Locale }) {
   );
 }
 
-/* --------------------------------------------------------------- messages */
-
 const ERRORS: Record<Locale, Record<string, string>> = {
   en: {
     name_too_short: "We need a name to hold the table under.",
@@ -116,9 +114,7 @@ const ERRORS: Record<Locale, Record<string, string>> = {
     date_too_far: "We take bookings up to two weeks ahead.",
     time_invalid: "Pick a time.",
     notes_too_long: "Please keep the note under 500 characters.",
-    rate_limited: "That is a lot of attempts. Give it a few minutes, or call us.",
-    delivery_failed: "That did not send. Please call us instead.",
-    unknown: "Something went wrong. Please call us instead.",
+    unknown: "Please check this field.",
   },
   ku: {
     name_too_short: "ناوێکمان پێویستە بۆ ئەوەی مێزەکە بەناویەوە بگرین.",
@@ -132,62 +128,42 @@ const ERRORS: Record<Locale, Record<string, string>> = {
     date_too_far: "تا دوو هەفتە پێش وەخت مێز دەگرین.",
     time_invalid: "کاتێک هەڵبژێرە.",
     notes_too_long: "تکایە تێبینییەکە لە ٥٠٠ پیت کەمتر بێت.",
-    rate_limited: "هەوڵی زۆر درا. چەند خولەکێک چاوەڕێ بکە، یان پەیوەندیمان پێوە بکە.",
-    delivery_failed: "نەنێردرا. تکایە پەیوەندیمان پێوە بکە.",
-    unknown: "کێشەیەک ڕوویدا. تکایە پەیوەندیمان پێوە بکە.",
+    unknown: "تکایە ئەم خانەیە بپشکنە.",
   },
 };
 
-/**
- * The booking form.
- *
- * Native validation gives the fast feedback; the API is the real gate and its
- * field errors are rendered back against the inputs. Submit is guarded against
- * a double tap, and both the success and failure states are announced rather
- * than only shown.
- */
+function summaryRows(details: ReservationInput, ku: boolean): Array<[string, string]> {
+  const rows: Array<[string, string]> = [
+    [ku ? "ناو" : "Name", details.name],
+    [ku ? "ژمارەی تەلەفۆن" : "Phone", details.phone],
+    [ku ? "ژمارەی کەسان" : "Guests", details.guests],
+    [ku ? "بەروار و کات" : "Date and time", `${details.date} · ${details.time}`],
+  ];
+  if (details.notes) rows.push([ku ? "تێبینی" : "Notes", details.notes]);
+  return rows;
+}
+
 function ReservationForm({ locale }: { locale: Locale }) {
   const [status, setStatus] = useState<Status>("idle");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
-  const [formError, setFormError] = useState<string | null>(null);
+  const [details, setDetails] = useState<ReservationInput | null>(null);
   const ku = locale === "ku";
   const message = (code: string) => ERRORS[locale][code] ?? ERRORS[locale].unknown;
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (status === "sending") return;
 
-    const form = event.currentTarget;
-    const payload = Object.fromEntries(new FormData(form).entries());
+    const payload = Object.fromEntries(new FormData(event.currentTarget).entries());
+    const result = validateReservation(payload);
 
-    setStatus("sending");
-    setFieldErrors({});
-    setFormError(null);
-
-    try {
-      const response = await fetch("/api/reservations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (response.ok) {
-        setStatus("sent");
-        return;
-      }
-
-      const body = await response.json().catch(() => null);
-      if (response.status === 422 && body?.errors) {
-        setFieldErrors(body.errors as FieldErrors);
-        setFormError(null);
-      } else {
-        setFormError(message(body?.error ?? "unknown"));
-      }
-      setStatus("idle");
-    } catch {
-      setFormError(message("delivery_failed"));
-      setStatus("idle");
+    if (!result.ok) {
+      setFieldErrors(result.errors);
+      return;
     }
+
+    setFieldErrors({});
+    setDetails(result.value);
+    setStatus("ready");
   }
 
   const field =
@@ -208,29 +184,48 @@ function ReservationForm({ locale }: { locale: Locale }) {
       <h3 className="display-md mb-2 text-bone">{ui.reserve[locale]}</h3>
       <p className="mb-8 text-sm text-bone-dim">
         {ku
-          ? "فۆرمەکە پڕبکەرەوە و لە ماوەی چەند کاتژمێرێکدا پەیوەندیت پێوە دەکەین."
-          : "Send this and we will confirm by phone within a few hours."}
+          ? "بە تەلەفۆن مێز دەگرین. ئەمە پڕبکەرەوە، ئینجا پەیوەندیمان پێوە بکە."
+          : "We hold tables by phone. Fill this in, then call us with the details."}
       </p>
 
       <AnimatePresence mode="wait">
-        {status === "sent" ? (
+        {status === "ready" && details ? (
           <motion.div
-            key="sent"
+            key="ready"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
             role="status"
             aria-live="polite"
-            className="rounded-sm border border-ember/30 bg-ember/10 p-8 text-center"
+            className="rounded-sm border border-ember/30 bg-ember/10 p-8"
           >
             <p className="font-display text-2xl text-bone">
-              {ku ? "داواکەت گەیشت." : "That reached us."}
+              {ku ? "ئەمانە پێمان بڵێ کاتێک پەیوەندی دەکەیت." : "Tell us this when you call."}
             </p>
-            <p className="mt-3 text-sm text-bone-dim">
-              {ku
-                ? "بەم زووانە پەیوەندیت پێوە دەکەین بۆ دڵنیاکردنەوەی مێزەکە."
-                : "We will call you shortly to confirm the table."}
-            </p>
+
+            <dl className="mt-6 space-y-3 border-t border-bone/10 pt-6 text-sm">
+              {summaryRows(details, ku).map(([term, value]) => (
+                <div key={term} className="flex items-baseline justify-between gap-6">
+                  <dt className="shrink-0 text-bone-faint">{term}</dt>
+                  <dd className="text-end text-bone">{value}</dd>
+                </div>
+              ))}
+            </dl>
+
+            <a
+              href={`tel:${restaurant.phoneHref}`}
+              className="mt-8 block rounded-full bg-ember px-8 py-3.5 text-center font-medium text-ink transition-transform duration-150 hover:scale-[1.01]"
+            >
+              {restaurant.phone}
+            </a>
+
+            <button
+              type="button"
+              onClick={() => setStatus("idle")}
+              className="mt-4 w-full text-xs text-bone-faint underline-offset-4 transition-colors hover:text-bone hover:underline"
+            >
+              {ku ? "گۆڕینی زانیارییەکان" : "Change these details"}
+            </button>
           </motion.div>
         ) : (
           <motion.form
@@ -240,15 +235,6 @@ function ReservationForm({ locale }: { locale: Locale }) {
             exit={{ opacity: 0 }}
             className="grid gap-5 sm:grid-cols-2"
           >
-            {formError && (
-              <p
-                role="alert"
-                className="rounded-sm border border-red-400/40 bg-red-400/10 px-4 py-3 text-sm text-red-300 sm:col-span-2"
-              >
-                {formError}
-              </p>
-            )}
-
             <div className="sm:col-span-2">
               <label className={label} htmlFor="name">
                 {ku ? "ناو" : "Name"}
@@ -258,6 +244,7 @@ function ReservationForm({ locale }: { locale: Locale }) {
                 name="name"
                 required
                 autoComplete="name"
+                defaultValue={details?.name ?? ""}
                 className={cls("name")}
                 aria-invalid={Boolean(fieldErrors.name)}
               />
@@ -275,6 +262,7 @@ function ReservationForm({ locale }: { locale: Locale }) {
                 required
                 autoComplete="tel"
                 placeholder="+964 750 000 0000"
+                defaultValue={details?.phone ?? ""}
                 className={cls("phone")}
                 aria-invalid={Boolean(fieldErrors.phone)}
               />
@@ -285,7 +273,12 @@ function ReservationForm({ locale }: { locale: Locale }) {
               <label className={label} htmlFor="guests">
                 {ku ? "ژمارەی کەسان" : "Guests"}
               </label>
-              <select id="guests" name="guests" defaultValue="2" className={cls("guests")}>
+              <select
+                id="guests"
+                name="guests"
+                defaultValue={details?.guests ?? "2"}
+                className={cls("guests")}
+              >
                 {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
                   <option key={n} value={n} className="bg-ink">
                     {n}
@@ -307,6 +300,7 @@ function ReservationForm({ locale }: { locale: Locale }) {
                 name="date"
                 type="date"
                 required
+                defaultValue={details?.date ?? ""}
                 className={cls("date")}
                 aria-invalid={Boolean(fieldErrors.date)}
               />
@@ -322,7 +316,7 @@ function ReservationForm({ locale }: { locale: Locale }) {
                 name="time"
                 type="time"
                 required
-                defaultValue="20:00"
+                defaultValue={details?.time ?? "20:00"}
                 className={cls("time")}
                 aria-invalid={Boolean(fieldErrors.time)}
               />
@@ -335,21 +329,23 @@ function ReservationForm({ locale }: { locale: Locale }) {
                   ? "تێبینی (هەستیاری، ڕووەکخۆر، ڕۆژی لەدایکبوون)"
                   : "Notes (allergies, vegetarian, a birthday)"}
               </label>
-              <textarea id="notes" name="notes" rows={3} maxLength={500} className={cls("notes")} />
+              <textarea
+                id="notes"
+                name="notes"
+                rows={3}
+                maxLength={500}
+                defaultValue={details?.notes ?? ""}
+                className={cls("notes")}
+              />
               <Error name="notes" />
             </div>
 
             <div className="sm:col-span-2">
               <button
                 type="submit"
-                disabled={status === "sending"}
-                className="w-full rounded-full bg-ember px-8 py-3.5 font-medium text-ink transition-transform duration-150 hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-full rounded-full bg-ember px-8 py-3.5 font-medium text-ink transition-transform duration-150 hover:scale-[1.01]"
               >
-                {status === "sending"
-                  ? ku
-                    ? "دەنێردرێت…"
-                    : "Sending…"
-                  : ui.reserve[locale]}
+                {ku ? "زانیارییەکان بپشکنە" : "Check these details"}
               </button>
             </div>
           </motion.form>
